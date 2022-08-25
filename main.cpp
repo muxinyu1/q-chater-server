@@ -1,21 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <cstdio>
+#include <cstring>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <pthread.h>
-#include <sqlite3.h>
-#include <uthash/uthash.h>
 
 #define MAX_LEN 1024
-
-typedef struct ID {
-
-}ID;
-
-ID* usr_id = NULL;
 
 extern void* thread_fun(void*);
 extern void process_request(char*, int*);
@@ -29,7 +19,7 @@ extern int process_signup_result(void*, int, char**, char**);
 
 int main() {
     pthread_t tid;
-    struct sockaddr_in my_addr;
+    struct sockaddr_in my_addr{};
     memset(&my_addr, 0, sizeof(my_addr));
     my_addr.sin_family = AF_INET;
     my_addr.sin_port = htons(8899);
@@ -50,13 +40,13 @@ int main() {
         perror("listen");
         return -1;
     }
-    while (1) {
-        int confd = accept(lisfd, NULL, NULL);
+    while (true) {
+        int confd = accept(lisfd, nullptr, nullptr);
         if (confd == -1) {
             perror("accept");
             return -1;
         }
-        pthread_create(&tid, NULL, thread_fun, (void*)confd);
+        pthread_create(&tid, nullptr, thread_fun, (void*)confd);
     }
     return 0;
 }

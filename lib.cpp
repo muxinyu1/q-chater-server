@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <pthread.h>
 #include <sqlite3.h>
 #include <string>
@@ -13,10 +11,7 @@
 #include <queue>
 #include <algorithm>
 #include <sstream>
-#include <unistd.h>
-#include <memory>
 
-#define PRINT_FONT_BLU  printf("\033[34m");
 #define PRINT_FONT_GRE  printf("\033[32m");
 #define PRINT_FONT_BLA  printf("\033[30m");
 #define PRINT_FONT_PUR  printf("\033[35m");
@@ -25,7 +20,7 @@ struct sockaddr_in;
 struct login_result;
 struct signup_result;
 
-extern ssize_t write (int __fd, const void *__buf, size_t __n);
+extern ssize_t write (int, const void*, size_t);
 void* thread_fun(void*);
 void process_request(char*, int*);
 struct login_result* login(char*, char*);
@@ -37,7 +32,7 @@ void get_friends(char*, char*);
 void add_friend(int*, const char*, const char*);
 void send_msg(const char* from, const char* to, const char* msg);
 bool is_online(const char* account);
-void create_group(const std::string& groupid, const std::vector<std::string>& members, int* confd_p);
+void create_group(const std::string& group_name, const std::vector<std::string>& members, const int* confd_p);
 
 #define MAX_LEN 1024
 
@@ -79,10 +74,10 @@ void* thread_fun(void* arg) {
     int confd = (int)(intptr_t)(arg);
     //write(confd, buffer, strlen(buffer));
     memset(buffer, 0, sizeof(buffer));
-    while (1) {
+    while (true) {
         long byte_num = recv(confd, buffer, sizeof(buffer), 0);
         if (byte_num == 0) {
-            pthread_exit(NULL);
+            pthread_exit(nullptr);
         }
         process_request(buffer, &confd);
         //printf("recv: %s\n", buffer);
@@ -196,10 +191,10 @@ void process_request(char* request, int* confid_p) {
                 break;
             } else {
                 char insert_statement[MAX_LEN * 2];
-                sprintf(insert_statement, "insert into Acc_Psw values(\'%s\', \'%s\')", account, psw);
+                sprintf(insert_statement, R"(insert into Acc_Psw values('%s', '%s'))", account, psw);
                 printf("statement = %s\n", insert_statement);
-                char* info = NULL;
-                sqlite3_exec(signup_result->handler, insert_statement, NULL, NULL, &info);
+                char* info = nullptr;
+                sqlite3_exec(signup_result->handler, insert_statement, nullptr, nullptr, &info);
                 if (info) {
                     printf("%s\n", info);
                     sqlite3_free(info);
@@ -274,8 +269,8 @@ void process_request(char* request, int* confid_p) {
             sqlite3* handler;
             sqlite3_open("./db/data.db", &handler);
             char query[MAX_LEN];
-            sprintf(query, "select Friend from Usr_Friend where Usr = \'%s\'", account);
-            char* info = NULL;
+            sprintf(query, R"(select Friend from Usr_Friend where Usr = '%s')", account);
+            char* info = nullptr;
             sqlite3_exec(handler, query, [](void* arg, int col, char** col_val, char** col_name) {
                 auto cur_friend = col_val[0];
                 if (online_groups.contains(cur_friend)) {
@@ -286,7 +281,7 @@ void process_request(char* request, int* confid_p) {
                     }
                 }
                 return 0;
-            }, NULL, &info);
+            }, nullptr, &info);
             online_accs.erase(account);
             confd_p_map.erase(account);
             left_msg.erase(account);
@@ -317,7 +312,7 @@ void process_request(char* request, int* confid_p) {
 }
 
 struct login_result* login(char* account, char* psw) {
-    struct login_result* result = (struct login_result*)malloc(sizeof(struct login_result));
+    auto* result = (struct login_result*)malloc(sizeof(struct login_result));
     memset(result, 0, sizeof(struct login_result));
     result->psw = psw;
     sqlite3* handler;
@@ -328,7 +323,7 @@ struct login_result* login(char* account, char* psw) {
         return result;
     }
     result->status = 1;
-    char* info = NULL;
+    char* info = nullptr;
     char query[MAX_LEN * 2];
     sprintf(query, "select * from Acc_Psw where Acc = \'%s\'", account);
     printf("query = %s\n", query);
@@ -340,7 +335,7 @@ struct login_result* login(char* account, char* psw) {
 }
 
 struct signup_result* sign_up(char* account, char* psw) {
-    struct signup_result* result = (struct signup_result*)malloc(sizeof(struct signup_result));
+    auto* result = (struct signup_result*)malloc(sizeof(struct signup_result));
     memset(result, 0, sizeof(struct signup_result));
     sqlite3* handler;
     int val = sqlite3_open("./db/data.db", &handler);
@@ -349,7 +344,7 @@ struct signup_result* sign_up(char* account, char* psw) {
         result->success = -1;
         return result;
     }
-    char* info = NULL;
+    char* info = nullptr;
     char query[MAX_LEN * 2];
     sprintf(query, "select * from Acc_Psw where Acc = \'%s\'", account);
     sqlite3_exec(handler, query, process_signup_result, (void*)result, &info);
@@ -366,7 +361,7 @@ struct signup_result* sign_up(char* account, char* psw) {
 }
 
 int process_login_result(void* arg, int col, char** col_val, char** col_name) {
-    struct login_result* result = (struct login_result*)arg;
+    auto* result = (struct login_result*)arg;
     result->call_back_times++;
     char* correct_psw = col_val[1];
     //密码正确
@@ -392,7 +387,7 @@ int process_get_friends_result(void* arg, int col, char** col_val, char** col_na
     sqlite3_open("./db/data.db", &handler);
     char query[MAX_LEN];
     sprintf(query, "select Psw from Acc_Psw where Acc = \'%s\'", cur_friend);
-    char* info = NULL;
+    char* info = nullptr;
     void* p_arg[] = {&handler, &cur_friend};
     sqlite3_exec(handler, query, [](void* arg, int col, char** col_val, char** col_name) {
         auto psw = col_val[0];
@@ -402,7 +397,7 @@ int process_get_friends_result(void* arg, int col, char** col_val, char** col_na
         //是群聊
         if (!strcmp(psw, "mxy2233@outlook.com")) {
             char inline_query[MAX_LEN];
-            char* inline_info = NULL;
+            char* inline_info = nullptr;
             //群聊计数+1
             online_groups[cur_friend]++;
             //群聊被加过了，直接退出
@@ -410,7 +405,7 @@ int process_get_friends_result(void* arg, int col, char** col_val, char** col_na
                 return 0;
             }
             //寻找群成员，并加入groups_members
-            sprintf(inline_query, "select Members from Groupid_Members where Groupid = \'%s\'", cur_friend);
+            sprintf(inline_query, R"(select Members from Groupid_Members where Groupid = '%s')", cur_friend);
             sqlite3_exec(handler, inline_query, [](void* arg, int col, char** col_val, char** col_name) {
                 auto cur_friend = (char*)arg;
                 char* friends_list = col_val[0];
@@ -442,7 +437,7 @@ void get_friends(char* account, char* friends) {
         printf("sqlite3_open(\"./db/data.db\", &handler)\" error!\n");
         return;
     }
-    char* info = NULL;
+    char* info = nullptr;
     char query[MAX_LEN];
     sprintf(query, "select Friend from Usr_Friend where Usr = \'%s\'", account);
     printf("query: %s\n", query);
@@ -461,7 +456,7 @@ void add_friend(int* found, const char* acc, const char* friend_acc) {
         return;
     }
     char query[MAX_LEN];
-    char* info = NULL;
+    char* info = nullptr;
     if (!*found) {
         sprintf(query, "select * from Acc_Psw where Acc = \'%s\'", friend_acc);
         printf("query = %s\n", query);
@@ -469,25 +464,25 @@ void add_friend(int* found, const char* acc, const char* friend_acc) {
         if (info) {
             printf("%s\n", info);
             sqlite3_free(info);
-            info = NULL;
+            info = nullptr;
         }
     }
     if (*found) {
-        sprintf(query, "insert into Usr_Friend values(\'%s\', \'%s\')", acc, friend_acc);
+        sprintf(query, R"(insert into Usr_Friend values('%s', '%s'))", acc, friend_acc);
         printf("query = %s\n", query);
-        sqlite3_exec(handler, query, NULL, NULL, &info);
+        sqlite3_exec(handler, query, nullptr, nullptr, &info);
         if (info) {
             printf("%s\n", info);
             sqlite3_free(info);
             info = NULL;
         }
-        sprintf(query, "insert into Usr_Friend values(\'%s\', \'%s\')", friend_acc, acc);
+        sprintf(query, R"(insert into Usr_Friend values('%s', '%s'))", friend_acc, acc);
         printf("query = %s\n", query);
-        sqlite3_exec(handler, query, NULL, NULL, &info);
+        sqlite3_exec(handler, query, nullptr, nullptr, &info);
         if (info) {
             printf("%s\n", info);
             sqlite3_free(info);
-            info = NULL;
+            info = nullptr;
         }
     }
 }
@@ -515,13 +510,13 @@ void send_msg(const char* from, const char* to, const char* msg) {
     PRINT_FONT_BLA
 }
 
-void create_group(const std::string& group_name, const std::vector<std::string>& members, int* confd_p) {
+void create_group(const std::string& group_name, const std::vector<std::string>& members, const int* confd_p) {
     sqlite3* handler;
     sqlite3_open("./db/data.db", &handler);
     char query[MAX_LEN];
     auto groupid = std::string("__group__") + group_name;
     sprintf(query, "select * from Groupid_Members where Groupid = \'%s\'", groupid.c_str());
-    char* info = NULL;
+    char* info = nullptr;
     bool already_exist = false;
     sqlite3_exec(handler, query, [](void* arg, int col, auto col_val, auto col_name){
         *(bool*)arg = true;
@@ -547,8 +542,8 @@ void create_group(const std::string& group_name, const std::vector<std::string>&
     }
     members_str += members.back();
     //成员列表现在是"a b c d"格式
-    sprintf(query, "insert into Groupid_Members values(\'%s\', \'%s\')", groupid.c_str(), members_str.c_str());
-    sqlite3_exec(handler, query, NULL, NULL, &info);
+    sprintf(query, R"(insert into Groupid_Members values('%s', '%s'))", groupid.c_str(), members_str.c_str());
+    sqlite3_exec(handler, query, nullptr, nullptr, &info);
     if (info) {
         printf("%s\n", info);
         sqlite3_free(info);
@@ -561,8 +556,8 @@ void create_group(const std::string& group_name, const std::vector<std::string>&
     printf("sent: %s\n", response);
     PRINT_FONT_BLA
     //群聊是好友的一种，群聊本身是所有群成员的好友
-    sprintf(query, "insert into Acc_Psw values(\'%s\', \'mxy2233@outlook.com\')", groupid.c_str());
-    sqlite3_exec(handler, query, NULL, NULL, &info);
+    sprintf(query, R"(insert into Acc_Psw values('%s', 'mxy2233@outlook.com'))", groupid.c_str());
+    sqlite3_exec(handler, query, nullptr, nullptr, &info);
     if (info) {
         printf("%s\n", info);
         sqlite3_free(info);
