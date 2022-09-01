@@ -11,6 +11,7 @@
 #include <queue>
 #include <algorithm>
 #include <sstream>
+#include <unistd.h>
 
 #define PRINT_FONT_GRE  printf("\033[32m");
 #define PRINT_FONT_BLA  printf("\033[30m");
