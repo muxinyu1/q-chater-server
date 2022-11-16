@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 #define MAX_LEN 1024
+#define PORT 8848
 
 extern void* thread_fun(void*);
 extern void process_request(char*, int*);
@@ -22,7 +23,7 @@ int main() {
     struct sockaddr_in my_addr{};
     memset(&my_addr, 0, sizeof(my_addr));
     my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(8899);
+    my_addr.sin_port = htons(PORT);
     my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     int lisfd = socket(AF_INET, SOCK_STREAM, 0);
 
