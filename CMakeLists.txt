@@ -6,4 +6,4 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Qtalk main.cpp lib.cpp)
 
-target_link_libraries(Qtalk sqlite3)
+target_link_libraries(Qtalk sqlite3 pthread)
