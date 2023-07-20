@@ -47,7 +47,7 @@ int main() {
             perror("accept");
             return -1;
         }
-        pthread_create(&tid, nullptr, thread_fun, (void*)confd);
+        pthread_create(&tid, nullptr, thread_fun, (void*)(long long)confd);
     }
     return 0;
 }
