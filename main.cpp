@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #define MAX_LEN 1024
-#define PORT 8848
+#define PORT 7721
 
 extern void* thread_fun(void*);
 extern void process_request(char*, int*);
